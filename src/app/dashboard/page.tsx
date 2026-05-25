@@ -67,7 +67,10 @@ function Sidebar({ active, onNav }: { active: NavSection; onNav: (s: NavSection)
             <div className="text-xs font-medium text-[#F0F4FF] truncate">Ricardo Costa</div>
             <div className="text-[10px] text-[#4A5A7A]">Plano Professional</div>
           </div>
-          <LogOut size={14} className="text-[#4A5A7A] cursor-pointer hover:text-[#EF4444]" />
+          <div className="flex items-center gap-2">
+            <Link href="/profile" title="Perfil"><Settings size={14} className="text-[#4A5A7A] hover:text-[#D4AF37]" /></Link>
+            <Link href="/auth/login"><LogOut size={14} className="text-[#4A5A7A] hover:text-[#EF4444]" /></Link>
+          </div>
         </div>
       </div>
     </aside>
@@ -313,12 +316,115 @@ function AlertsSection() {
   );
 }
 
-function PlaceholderSection({ title }: { title: string }) {
+function AnalysesSection() {
   return (
-    <div className="flex flex-col items-center justify-center h-64 gap-4 glass rounded-2xl">
-      <div className="text-5xl">🪙</div>
-      <h2 className="text-xl font-outfit font-bold text-[#F0F4FF]">{title}</h2>
-      <p className="text-[#8899BB] text-sm">Em desenvolvimento...</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-outfit font-black text-[#F0F4FF]">Minhas Análises</h1>
+          <p className="text-[#8899BB] text-sm">{MOCK_ANALYSES.length} análises realizadas</p>
+        </div>
+        <Link href="/analyze" className="btn-primary py-2 px-5 text-sm flex items-center gap-2">
+          <Plus size={16} /> Nova Análise
+        </Link>
+      </div>
+      <div className="glass rounded-2xl overflow-hidden">
+        <table className="table-dark">
+          <thead>
+            <tr>
+              <th>Moeda</th>
+              <th>País / Ano</th>
+              <th>Grau</th>
+              <th>Raridade</th>
+              <th>Valor Est.</th>
+              <th>Confiança</th>
+              <th>Data</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {MOCK_ANALYSES.map(a => (
+              <tr key={a.id}>
+                <td className="font-medium text-[#F0F4FF]">{a.coin?.name || 'Processando...'}</td>
+                <td>{a.coin?.country} · {a.coin?.year}</td>
+                <td>{a.grade ? <span className="badge badge-blue text-xs">{a.grade}</span> : '—'}</td>
+                <td>
+                  {a.rarity ? <span className="text-xs font-semibold" style={{ color: RARITY_COLORS[a.rarity] }}>{RARITY_LABELS[a.rarity]}</span> : '—'}
+                </td>
+                <td className="text-[#D4AF37] font-semibold">
+                  {a.estimatedValueAvg ? `R$ ${a.estimatedValueAvg.toLocaleString('pt-BR')}` : '—'}
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${a.confidence >= 0.85 ? 'bg-[#10B981]' : 'bg-[#F59E0B]'}`} />
+                    <span className="text-xs">{Math.round(a.confidence * 100)}%</span>
+                  </div>
+                </td>
+                <td className="text-[#8899BB] text-xs">{new Date(a.createdAt).toLocaleDateString('pt-BR')}</td>
+                <td>
+                  <span className={`badge text-xs ${
+                    a.status === 'completed' ? 'badge-green' :
+                    a.status === 'processing' ? 'badge-gold' : 'badge-red'
+                  }`}>
+                    {a.status === 'completed' ? 'Concluído' : a.status === 'processing' ? 'Processando' : a.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CatalogSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-outfit font-black text-[#F0F4FF]">Catálogo Numismático</h1>
+          <p className="text-[#8899BB] text-sm">Explore moedas do acervo global</p>
+        </div>
+        <Link href="/catalog" className="btn-primary py-2 px-5 text-sm flex items-center gap-2">
+          <Eye size={16} /> Ver Catálogo Completo
+        </Link>
+      </div>
+      <div className="glass rounded-2xl p-8 text-center">
+        <div className="text-6xl mb-4">📚</div>
+        <h3 className="text-xl font-outfit font-bold text-[#F0F4FF] mb-2">Catálogo Interativo</h3>
+        <p className="text-[#8899BB] mb-6">Acesse o catálogo completo com busca e filtros avançados</p>
+        <Link href="/catalog" className="btn-primary inline-flex items-center gap-2 px-8 py-3">
+          <BookOpen size={18} /> Abrir Catálogo
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function SettingsSection() {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-outfit font-black text-[#F0F4FF]">Configurações</h1>
+      <div className="grid md:grid-cols-2 gap-4">
+        {[
+          { icon: '👤', title: 'Perfil & Conta', desc: 'Editar suas informações e foto', href: '/profile' },
+          { icon: '🔔', title: 'Notificações', desc: 'Gerenciar alertas e e-mails', href: '/profile' },
+          { icon: '🛡️', title: 'Segurança', desc: 'Senha e autenticação 2FA', href: '/profile' },
+          { icon: '💳', title: 'Assinatura', desc: 'Plano atual e faturamento', href: '/profile' },
+          { icon: '🎨', title: 'Aparência', desc: 'Tema e personalização', href: '#' },
+          { icon: '🔌', title: 'API & Integrações', desc: 'Chaves de API e webhooks', href: '#' },
+        ].map((item, i) => (
+          <Link key={i} href={item.href} className="glass rounded-2xl p-6 flex items-start gap-4 hover:border-[#D4AF37]/40 transition-all group">
+            <div className="text-3xl">{item.icon}</div>
+            <div>
+              <div className="font-outfit font-bold text-[#F0F4FF] group-hover:text-[#D4AF37] transition-colors">{item.title}</div>
+              <div className="text-[#8899BB] text-sm mt-0.5">{item.desc}</div>
+            </div>
+            <ChevronRight size={16} className="ml-auto text-[#4A5A7A] group-hover:text-[#D4AF37] transition-colors" />
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -355,11 +461,11 @@ export default function DashboardPage() {
 
         <div className="p-8">
           {section === 'overview' && <OverviewSection />}
-          {section === 'analyses' && <PlaceholderSection title="Todas as Análises" />}
+          {section === 'analyses' && <AnalysesSection />}
           {section === 'collection' && <CollectionSection />}
-          {section === 'catalog' && <PlaceholderSection title="Catálogo de Moedas" />}
+          {section === 'catalog' && <CatalogSection />}
           {section === 'alerts' && <AlertsSection />}
-          {section === 'settings' && <PlaceholderSection title="Configurações" />}
+          {section === 'settings' && <SettingsSection />}
         </div>
       </main>
     </div>

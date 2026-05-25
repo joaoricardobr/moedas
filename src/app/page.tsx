@@ -83,9 +83,11 @@ export default function HomePage() {
             <Link href="#how" className="hover:text-[#F0F4FF] transition-colors">Como Funciona</Link>
             <Link href="#pricing" className="hover:text-[#F0F4FF] transition-colors">Preços</Link>
             <Link href="/catalog" className="hover:text-[#F0F4FF] transition-colors">Catálogo</Link>
+            <Link href="/dashboard" className="hover:text-[#F0F4FF] transition-colors">Dashboard</Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-sm text-[#8899BB] hover:text-[#F0F4FF] transition-colors px-4 py-2">Entrar</Link>
+            <Link href="/auth/login" className="text-sm text-[#8899BB] hover:text-[#F0F4FF] transition-colors px-4 py-2">Entrar</Link>
+            <Link href="/auth/register" className="btn-secondary text-sm py-2 px-4">Cadastrar</Link>
             <Link href="/analyze" className="btn-primary text-sm py-2 px-5">
               Analisar Moeda
             </Link>
