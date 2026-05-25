@@ -152,7 +152,7 @@ function ResultCard({ analysis }: { analysis: CoinAnalysis }) {
               <YAxis hide />
               <Tooltip
                 contentStyle={{ background: '#1A2332', border: '1px solid #2A3A55', borderRadius: '0.5rem' }}
-                formatter={(v: number) => [`R$ ${v.toLocaleString('pt-BR')}`, 'Preço']}
+                formatter={(v: any) => [`R$ ${Number(v).toLocaleString('pt-BR')}`, 'Preço']}
               />
               <Area type="monotone" dataKey="price" stroke="#D4AF37" fill="url(#goldGrad)" strokeWidth={2} />
             </AreaChart>
