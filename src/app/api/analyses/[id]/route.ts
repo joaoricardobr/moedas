@@ -4,9 +4,9 @@ import { MOCK_ANALYSES } from '@/lib/mockData';
 // GET /api/analyses/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   
   // In production: query DB by ID with auth check
   const analysis = MOCK_ANALYSES.find(a => a.id === id) || MOCK_ANALYSES[0];
@@ -21,9 +21,9 @@ export async function GET(
 // PATCH /api/analyses/[id] — update feedback
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const body = await request.json();
 
   // In production: validate + update DB
