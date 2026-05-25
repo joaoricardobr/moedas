@@ -103,9 +103,9 @@ Responda APENAS com o JSON. Estime os valores com base no mercado atual para ess
       analysis: finalAnalysis,
       message: 'Análise concluída',
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[upload] Error:', err);
-    return NextResponse.json({ error: 'Erro interno no servidor ou na IA' }, { status: 500 });
+    return NextResponse.json({ error: `Erro interno: ${err.message || String(err)}` }, { status: 500 });
   }
 }
 

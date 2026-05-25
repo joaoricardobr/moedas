@@ -291,7 +291,15 @@ export default function AnalyzePage() {
   const [selectedType, setSelectedType] = useState<'obverse' | 'reverse' | 'edge'>('obverse');
 
   const onDrop = useCallback((accepted: File[]) => {
-    const newFiles = accepted.map(f => ({
+    const validFiles = accepted.filter(f => {
+      if (f.size > 4 * 1024 * 1024) {
+        alert(`O arquivo ${f.name} é muito grande. O limite da Vercel é 4MB por foto.`);
+        return false;
+      }
+      return true;
+    });
+    
+    const newFiles = validFiles.map(f => ({
       file: f,
       preview: URL.createObjectURL(f),
       type: selectedType,
