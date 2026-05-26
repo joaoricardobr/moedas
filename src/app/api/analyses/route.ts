@@ -83,17 +83,32 @@ Responda APENAS com o JSON. Estime os valores com base no mercado atual para ess
     });
 
     let jsonStr = response.text || '{}';
+    console.log('[gemini] raw response:', jsonStr.slice(0, 300));
+
+    // Remove markdown code blocks if present
+    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+    // Extract the first JSON object found in the text
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[0];
+    if (!jsonMatch) {
+      console.error('[gemini] no JSON found in response:', jsonStr.slice(0, 200));
+      return NextResponse.json({ error: `A IA não retornou JSON válido. Resposta: ${jsonStr.slice(0, 100)}` }, { status: 500 });
     }
-    
-    const analysisData = JSON.parse(jsonStr.trim());
+    jsonStr = jsonMatch[0];
+
+    let analysisData: any;
+    try {
+      analysisData = JSON.parse(jsonStr);
+    } catch (parseErr: any) {
+      console.error('[gemini] JSON parse error:', parseErr.message, '\nRaw:', jsonStr.slice(0, 300));
+      return NextResponse.json({ error: `Erro ao interpretar resposta da IA: ${parseErr.message}` }, { status: 500 });
+    }
 
     // Merge with mock base to have a full object for the UI
     const finalAnalysis = {
       ...MOCK_ANALYSES[0],
       ...analysisData,
+      coin: { ...MOCK_ANALYSES[0].coin, ...(analysisData.coin || {}) },
       id: `a_${Date.now()}`,
       status: 'completed',
     };
