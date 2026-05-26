@@ -283,34 +283,82 @@ function ResultCard({ analysis }: { analysis: CoinAnalysis }) {
   );
 }
 
+// ─── Image Compressor (Canvas API, sem bibliotecas) ───────────────────────
+async function compressImage(file: File, maxSizePx = 1600, quality = 0.82): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      // Redimensiona mantendo proporção
+      if (width > maxSizePx || height > maxSizePx) {
+        if (width > height) {
+          height = Math.round((height * maxSizePx) / width);
+          width = maxSizePx;
+        } else {
+          width = Math.round((width * maxSizePx) / height);
+          height = maxSizePx;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          // Só usa comprimido se realmente ficou menor
+          resolve(compressed.size < file.size ? compressed : file);
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+}
+
 export default function AnalyzePage() {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [files, setFiles] = useState<{ file: File; preview: string; type: string }[]>([]);
+  const [files, setFiles] = useState<{ file: File; preview: string; type: string; originalSize: number; compressedSize: number }[]>([]);
   const [analysis, setAnalysis] = useState<CoinAnalysis | null>(null);
   const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([]);
   const [selectedType, setSelectedType] = useState<'obverse' | 'reverse' | 'edge'>('obverse');
+  const [compressing, setCompressing] = useState(false);
 
-  const onDrop = useCallback((accepted: File[]) => {
-    const validFiles = accepted.filter(f => {
-      if (f.size > 4 * 1024 * 1024) {
-        alert(`O arquivo ${f.name} é muito grande. O limite da Vercel é 4MB por foto.`);
-        return false;
-      }
-      return true;
-    });
-    
-    const newFiles = validFiles.map(f => ({
-      file: f,
-      preview: URL.createObjectURL(f),
-      type: selectedType,
-    }));
-    setFiles(prev => [...prev, ...newFiles]);
+  const onDrop = useCallback(async (accepted: File[]) => {
+    if (accepted.length === 0) return;
+    setCompressing(true);
+    try {
+      const newFiles = await Promise.all(
+        accepted.map(async (f) => {
+          const compressed = await compressImage(f);
+          return {
+            file: compressed,
+            preview: URL.createObjectURL(compressed),
+            type: selectedType,
+            originalSize: f.size,
+            compressedSize: compressed.size,
+          };
+        })
+      );
+      setFiles(prev => [...prev, ...newFiles]);
+    } finally {
+      setCompressing(false);
+    }
   }, [selectedType]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.heic'] },
-    maxSize: 20 * 1024 * 1024,
+    maxSize: 50 * 1024 * 1024, // 50MB — compressor cuida do tamanho
     multiple: true,
   });
 
@@ -420,13 +468,23 @@ export default function AnalyzePage() {
                 </div>
 
                 {/* Drop zone */}
-                <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'drag-active' : ''}`}>
-                  <input {...getInputProps()} />
-                  <Upload size={48} className="mx-auto mb-4 text-[#2A3A55]" />
-                  <p className="text-[#F0F4FF] font-outfit font-bold text-lg mb-2">
-                    {isDragActive ? 'Solte as imagens aqui' : 'Arraste ou clique para fazer upload'}
-                  </p>
-                  <p className="text-[#8899BB] text-sm">JPG, PNG, WEBP, HEIC · Máx. 20MB por arquivo</p>
+                <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'drag-active' : ''} ${compressing ? 'opacity-60 cursor-wait' : ''}`}>
+                  <input {...getInputProps()} disabled={compressing} />
+                  {compressing ? (
+                    <>
+                      <div className="w-12 h-12 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin mx-auto mb-4" />
+                      <p className="text-[#D4AF37] font-outfit font-bold text-lg mb-1">Comprimindo imagem...</p>
+                      <p className="text-[#8899BB] text-sm">Otimizando sem perder qualidade</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={48} className="mx-auto mb-4 text-[#2A3A55]" />
+                      <p className="text-[#F0F4FF] font-outfit font-bold text-lg mb-2">
+                        {isDragActive ? 'Solte as imagens aqui' : 'Arraste ou clique para fazer upload'}
+                      </p>
+                      <p className="text-[#8899BB] text-sm">JPG, PNG, WEBP, HEIC · Qualquer tamanho · <span className="text-[#10B981]">Compressão automática ✓</span></p>
+                    </>
+                  )}
                 </div>
 
                 {/* Preview */}
@@ -440,6 +498,19 @@ export default function AnalyzePage() {
                             {f.type === 'obverse' ? 'Frente' : f.type === 'reverse' ? 'Verso' : 'Borda'}
                           </span>
                         </div>
+                        {/* Compression info */}
+                        {f.originalSize !== f.compressedSize && (
+                          <div className="absolute bottom-2 left-2 right-2">
+                            <div className="bg-[#080B12]/90 rounded-lg px-2 py-1 text-center">
+                              <span className="text-[#10B981] text-xs font-semibold">
+                                ↓ {Math.round((1 - f.compressedSize / f.originalSize) * 100)}% menor
+                              </span>
+                              <span className="text-[#4A5A7A] text-xs ml-1">
+                                ({(f.compressedSize / 1024).toFixed(0)}KB)
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         <button
                           onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
                           className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#EF4444] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
